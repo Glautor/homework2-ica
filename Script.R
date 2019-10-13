@@ -9,7 +9,7 @@ library(caret)
 library(foba)
 library(ridge)
 
-setwd("C://your-directory")
+setwd("your-working-directory")
 #                                               Parte 0 - Pre Processamento
 # o treino_y e teste_y Ã© a solubilidade de cada composto
 treino_x = read.table("solTrainX.txt")
@@ -49,7 +49,7 @@ dev.off()
 ggplot(dataset,aes(dataset[,1])) + geom_histogram(color="black",fill="springgreen2")+theme_gray()+
     labs(x=names(dataset[1]),y="FrequÃªncia")
 # Scatter plot
-setwd("C://your-directory")
+setwd("your-working-directory")
 for(i in 1:228){
   
   ggplot(dataset,aes(dataset[,i])) + geom_histogram(color="black",fill="springgreen2")+theme_gray()+
@@ -57,18 +57,57 @@ for(i in 1:228){
   ggsave(paste(names(dataset[i]),".pdf"))
 }
   dev.off()
-  setwd("C://your-directory")
+  setwd("your-working-directory")
 
 
 #                                               Parte 1 - Ordinary Linear Regression
 
+  # Build the model
+  set.seed(14)
+  ridge <- train(
+    y ~., data = dataTreino, method = "lm",
+    trControl = trainControl("cv", number = 10),
+    tuneLength = 13,
+    preProc=c("center","scale","YeoJohnson")
+  )
+  
+  # Make predictions
+  
+  predictionsTrain <- predict(ridge, dataTreino)
+  predictionsTest <- predict(ridge, dataTeste)
+  # Model prediction performance
+  
+  # RMSE e Rsquare do Treino 
+  data.frame(
+    RMSE = RMSE(predictionsTrain, dataTreino$y),
+    Rsquare = R2(predictionsTrain, dataTreino$y)
+  )
+  
+  # RMSE e Rsquare do Teste
+  data.frame(
+    RMSE = RMSE(predictionsTest, dataTeste$y),
+    Rsquare = R2(predictionsTest, dataTeste$y)
+  )
+  
+  dfTest = data.frame(dataTeste$y,predictionsTest)
+  dfTrain = data.frame(dataTreino$y,predictionsTrain)
+  
+  pdf("LM-Train-10Fold.pdf")
+  ggplot(dfTreino,aes(dataTreino.y,predictionsTrain)) + geom_point(color="black") + labs(title="LM-Train: 10-fold",x="Predicted",y="Observed")
+  dev.off()
+  pdf("LM-Test-10Fold.pdf")
+  ggplot(dfTeste,aes(dataTeste.y,predictionsTest)) + geom_point(color="black") + labs(title="LM-Test: 10-fold",x="Predicted",y="Observed")
+  dev.off()
+
+  
+  
 #                                               Parte 2 - LÂ² Penalized Linear Regression
 
 # Build the model
 set.seed(16)
 ridge <- train(
   y ~., data = dataTreino, method = "ridge",
-  trControl = trainControl("cv", number = 5),
+  trControl = trainControl("cv", number = 10),
   tuneLength = 13,
   preProc=c("center","scale","YeoJohnson")
 )
@@ -95,11 +134,11 @@ dfTest = data.frame(dataTeste$y,predictionsTest)
 dfTrain = data.frame(dataTreino$y,predictionsTrain)
 
 
-pdf("L2Train10fold.pdf")
+pdf("L2-Train-10Fold.pdf")
 ggplot(dfTreino,aes(dataTreino.y,predictionsTrain)) + geom_point(color="blue") + labs(title="L2-Train: 10-fold",x="Predicted",y="Observed")
 dev.off()
-pdf("L2Test10fold.pdf")
-ggplot(dfTeste,aes(dataTeste.y,predictionsTest)) + geom_point(color="blue") + labs(title="L2_Test: 10-fold",x="Predicted",y="Observed")
+pdf("L2-Test-10Fold.pdf")
+ggplot(dfTeste,aes(dataTeste.y,predictionsTest)) + geom_point(color="blue") + labs(title="L2-Test: 10-fold",x="Predicted",y="Observed")
 dev.off()
 
 
@@ -109,7 +148,7 @@ dev.off()
 set.seed(16)
 ridge <- train(
   y ~., data = dataTreino, method = "pls",
-  trControl = trainControl("cv", number = 5),
+  trControl = trainControl("cv", number = 10),
   tuneLength = 13,
   preProc=c("center","scale","YeoJohnson")
 )
@@ -135,11 +174,10 @@ data.frame(
 dfTest = data.frame(dataTeste$y,predictionsTest)
 dfTrain = data.frame(dataTreino$y,predictionsTrain)
 
-
-pdf("PLSTrain10fold.pdf")
+pdf("PLS-Train-10Fold.pdf")
 ggplot(dfTreino,aes(dataTreino.y,predictionsTrain)) + geom_point(color="red") + labs(title="PLS-Train: 10-fold",x="Predicted",y="Observed")
 dev.off()
-pdf("PLSTest10fold.pdf")
+pdf("PLS-Test-10Fold.pdf")
 ggplot(dfTeste,aes(dataTeste.y,predictionsTest)) + geom_point(color="red") + labs(title="PLS-Test: 10-fold",x="Predicted",y="Observed")
 dev.off()
 
